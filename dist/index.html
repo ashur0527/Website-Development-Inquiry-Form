@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>網站風格探索諮詢表</title>
+    <meta name="description" content="一份給客人填寫的網站風格探索諮詢表。" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-panel" aria-labelledby="page-title">
+        <div class="hero-media" aria-hidden="true"></div>
+        <div class="hero-copy">
+          <p class="eyebrow">Website Style Discovery</p>
+          <h1 id="page-title">網站風格探索諮詢表</h1>
+          <p>不需要準備專業資料，只要用直覺選出喜歡的方向。這份表單會幫我們先抓到你的品牌氣質、網站用途與大致視覺偏好。</p>
+        </div>
+      </section>
+
+      <section class="form-layout" aria-label="網站風格探索表單">
+        <aside class="summary-panel">
+          <p class="section-kicker">填寫狀態</p>
+          <h2>大約 3 分鐘完成</h2>
+          <p>可以先填個方向，不確定的地方留白也沒關係。重點是讓設計討論更快進入同一個畫面。</p>
+          <div class="progress-wrap" aria-hidden="true"><span class="progress-bar" id="progressBar"></span></div>
+          <ul class="gentle-list">
+            <li>選擇喜歡的整體感覺</li>
+            <li>說明網站主要用途</li>
+            <li>留下可聯絡的資訊</li>
+          </ul>
+        </aside>
+
+        <form class="consult-form" id="consultForm">
+          <div class="form-section">
+            <div>
+              <p class="section-kicker">Step 01</p>
+              <h2>你希望網站給人的第一印象是？</h2>
+            </div>
+            <div class="choice-grid">
+              <label class="choice-card"><input type="checkbox" name="style" value="清爽簡約" /><span>清爽簡約</span></label>
+              <label class="choice-card"><input type="checkbox" name="style" value="溫暖親切" /><span>溫暖親切</span></label>
+              <label class="choice-card"><input type="checkbox" name="style" value="專業可靠" /><span>專業可靠</span></label>
+              <label class="choice-card"><input type="checkbox" name="style" value="活潑有記憶點" /><span>活潑有記憶點</span></label>
+              <label class="choice-card"><input type="checkbox" name="style" value="高級精緻" /><span>高級精緻</span></label>
+              <label class="choice-card"><input type="checkbox" name="style" value="自然療癒" /><span>自然療癒</span></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div>
+              <p class="section-kicker">Step 02</p>
+              <h2>網站主要想達成什麼？</h2>
+            </div>
+            <div class="radio-stack">
+              <label><input type="radio" name="goal" value="介紹品牌或服務" /><span>介紹品牌或服務</span></label>
+              <label><input type="radio" name="goal" value="收集客戶詢問" /><span>收集客戶詢問</span></label>
+              <label><input type="radio" name="goal" value="展示作品或案例" /><span>展示作品或案例</span></label>
+              <label><input type="radio" name="goal" value="讓客人線上預約或購買" /><span>讓客人線上預約或購買</span></label>
+            </div>
+          </div>
+
+          <div class="form-section compact-grid">
+            <label><span>品牌或公司名稱</span><input name="brand" type="text" placeholder="例如：晨光甜點工作室" /></label>
+            <label><span>你偏好的顏色或不喜歡的顏色</span><input name="colors" type="text" placeholder="例如：喜歡綠色，不要太暗" /></label>
+          </div>
+
+          <div class="form-section">
+            <label>
+              <span>有沒有喜歡的網站、照片、品牌，或想補充的方向？</span>
+              <textarea name="references" rows="5" placeholder="可以貼網址，也可以簡單描述：我喜歡乾淨、有留白、看起來信任感高的網站。"></textarea>
+            </label>
+          </div>
+
+          <div class="form-section compact-grid">
+            <label><span>你的稱呼</span><input name="name" type="text" placeholder="王小姐" /></label>
+            <label><span>聯絡方式</span><input name="contact" type="text" placeholder="Email / LINE / 電話" /></label>
+          </div>
+
+          <div class="actions">
+            <button type="submit">送出諮詢</button>
+            <p>填寫資料僅用於本次網站諮詢與後續聯絡。</p>
+          </div>
+          <p id="submitStatus" class="submit-status" role="status" aria-live="polite"></p>
+
+          <section class="result-card" id="resultCard" aria-live="polite" hidden>
+            <p class="section-kicker">摘要</p>
+            <h2>初步網站方向</h2>
+            <div id="resultText"></div>
+          </section>
+        </form>
+      </section>
+    </main>
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
