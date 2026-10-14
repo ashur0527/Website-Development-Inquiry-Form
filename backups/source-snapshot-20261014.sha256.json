@@ -1,0 +1,47 @@
+﻿[
+    {
+        "path":  ".openai/hosting.json",
+        "sha256":  "b1448a1cfbb2f0c911fb3eadb1e70797649f62bb4c27afc3583d8fa5be82ed0e",
+        "bytes":  106
+    },
+    {
+        "path":  "dist/assets/style-consultation-bg.png",
+        "sha256":  "903cb8069c431fe8cc7d665d070a60f95c3b8706e1cb9a3b3eeb656190ce8fe5",
+        "bytes":  2485189
+    },
+    {
+        "path":  "dist/config.js",
+        "sha256":  "12b6b1192a66e5985d7cfc6694ed3b6e21edd6180f4dc04822a6158e7e694a5d",
+        "bytes":  234
+    },
+    {
+        "path":  "dist/index.html",
+        "sha256":  "037f675544863eada208ff4d3dab70fe1cffef9d48fadad5dce17b518ed159fc",
+        "bytes":  5161
+    },
+    {
+        "path":  "dist/script.js",
+        "sha256":  "77f1aed95402655aec076821c84b0eed983069d8b2ce40dd087ad04f83d670b7",
+        "bytes":  4657
+    },
+    {
+        "path":  "dist/styles.css",
+        "sha256":  "4916962926e9317c5902536835fbd2d967473873fe79e8d3c733a5cbee55d44d",
+        "bytes":  7172
+    },
+    {
+        "path":  "google-apps-script.gs",
+        "sha256":  "eea578d030cf06e0440b59ee8e59b4812f25958e9dd880338cfc6c42caf2494a",
+        "bytes":  3026
+    },
+    {
+        "path":  "GOOGLE-SHEETS-SETUP.md",
+        "sha256":  "2c56758f48fe5363074d5c88b1f9ce9d2a30ae7ac118192d967a9af965274fcd",
+        "bytes":  801
+    },
+    {
+        "path":  "integration.test.cjs",
+        "sha256":  "1568df5740272a132c52c7ad441529f9b1ae6b7e9da624060fa942ebaf01beb4",
+        "bytes":  7424
+    }
+]

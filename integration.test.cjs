@@ -4,11 +4,15 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { randomUUID } = require('node:crypto');
 
-function backend() {
+function backend(options = {}) {
   const rows = [];
   let fail = false;
   let held = false;
+  let tabName = options.tabName || '網站諮詢';
+  let deleted = false;
   const sheet = {
+    getSheetId: () => 5553746,
+    getMaxColumns: () => 26,
     getLastRow: () => rows.length,
     appendRow: row => { if (fail) throw new Error('Write failed'); rows.push([...row]); },
     setFrozenRows() {},
@@ -24,14 +28,28 @@ function backend() {
     SpreadsheetApp: {
       openById: id => {
         assert.equal(id, '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0');
-        return { getSheetByName: () => sheet };
+        return {
+          getSheetByName: name => !deleted && name === tabName ? sheet : null,
+          getSheetById: id => {
+            assert.equal(id, 5553746);
+            return deleted ? null : sheet;
+          },
+          getSheets: () => deleted ? [] : [sheet],
+          insertSheet: () => { throw new Error('Unexpected new tab'); }
+        };
       },
       flush() {}
     },
     ContentService: { MimeType: { JSON: 'json' }, createTextOutput: text => ({ setMimeType: () => JSON.parse(text) }) }
   });
   vm.runInContext(fs.readFileSync('google-apps-script.gs', 'utf8'), ctx);
-  return { rows, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }), fail: () => { fail = true; }, locked: () => held };
+  return {
+    rows,
+    send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
+    fail: () => { fail = true; }, locked: () => held,
+    rename: name => { tabName = name; },
+    deleteTab: () => { deleted = true; }
+  };
 }
 
 const sample = () => ({ submissionId: randomUUID(), name: 'Test customer', contact: 'test@example.com', brand: '', style: [], goal: '', colors: '', references: '' });
@@ -70,6 +88,33 @@ test('write failure never acknowledges success and releases the lock', () => {
   app.fail();
   assert.equal(app.send(sample()).ok, false);
   assert.equal(app.locked(), false);
+});
+
+test('renaming the fixed target tab keeps writing into the same tab', () => {
+  const app = backend();
+  assert.equal(app.send(sample()).ok, true);
+  app.rename('客戶網站需求');
+  assert.equal(app.send(sample()).ok, true);
+  assert.equal(app.rows.length, 3);
+});
+test('an existing renamed target accepts new submissions', () => {
+  const app = backend({ tabName: '新的分頁名稱' });
+  app.rows.push(['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充', '提交編號']);
+  assert.equal(app.send(sample()).ok, true);
+  assert.equal(app.rows.length, 2);
+});
+test('deleted bound tab fails without creating a replacement', () => {
+  const app = backend();
+  app.send(sample());
+  app.deleteTab();
+  assert.equal(app.send(sample()).ok, false);
+  assert.equal(app.rows.length, 2);
+  assert.equal(app.locked(), false);
+});
+test('an empty renamed target is initialized without creating a tab', () => {
+  const app = backend({ tabName: '客戶需求' });
+  assert.equal(app.send(sample()).ok, true);
+  assert.equal(app.rows.length, 2);
 });
 
 function frontend(fetcher, endpoint = 'https://script.google.com/macros/s/test/exec') {
