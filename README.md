@@ -26,7 +26,7 @@ ZIP 內的 9 個檔案已逐一核對，與打包時的內容一致。包含原�
 4. 按 Deploy，完成後使用 Vercel 提供的正式網址。
 5. 從無痕視窗確認客戶可以開啟正式網址。如要求登入，請在 Vercel 專案設定檢查正式環境的 Deployment Protection。
 
-程式不需要環境變數。原有 Google 接收網址保存在 dist/config.js，已保持不變。
+程式不需要環境變數。Google 接收網址保存在 dist/config.js，2026-10-29 已更新為重新部署的網址，版本為 consultation-20261029-1。Vercel 需部署包含這項修改的 GitHub 版本，才會使用新網址。
 
 Vercel 僅發布 dist 內的網站檔案；ZIP 備份、測試及 Google 接收程式不會成為網站公開頁面。
 
@@ -37,6 +37,8 @@ node --test integration.test.cjs
 ```
 
 可以直接在瀏覽器開啟 dist/index.html 預覽。Google 接收程式需另外在 Apps Script 部署，詳見 GOOGLE-SHEETS-SETUP.md。
+
+2026-10-29 新接收網址已完成三種尺寸的真實瀏覽器送出與 14 項正式接收端檢查，本機 34 項測試亦通過。測試紀錄及正式站發佈範圍見 DEPLOYMENT-VERIFICATION-20261029.md。
 
 本機程式快照不代表 Google 帳號中的已部署程式副本；此備份未重新寫入試算表或修改 Google 部署。
 
