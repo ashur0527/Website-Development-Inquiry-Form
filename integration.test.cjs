@@ -18,6 +18,7 @@ function backend(options = {}) {
   let held = false;
   let deleted = false;
   let sheetOpens = 0;
+  const logs = [];
   let tabName = options.tabName || '商家諮詢';
   const sheet = {
     getName: () => tabName,
@@ -78,7 +79,8 @@ function backend(options = {}) {
   };
   const lock = { waitLock: () => { held = true; }, hasLock: () => held, releaseLock: () => { held = false; } };
   const ctx = vm.createContext({
-    console: { error() {} },
+    console: { error() {}, log: message => logs.push(message) },
+    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/test/exec' }) },
     LockService: { getScriptLock: () => lock },
     SpreadsheetApp: {
       DeveloperMetadataVisibility: { PROJECT: 'PROJECT' },
@@ -99,6 +101,8 @@ function backend(options = {}) {
   return {
     rows, receipts, sheet, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
     health: () => ctx.doGet(),
+    diagnose: () => ctx.checkDeploymentInfo(),
+    logs,
     sheetOpens: () => sheetOpens,
     removeNumber: () => ctx.removeSubmissionNumberColumn(),
     fail: () => { fail = true; }, locked: () => held,
@@ -123,7 +127,7 @@ const sample = () => ({
 test('saves all new answers in the correct columns and acknowledges the ID', () => {
   const app = backend();
   const data = sample();
-  assert.deepEqual(app.send(data), { ok: true, submissionId: data.submissionId, version: 'consultation-20261028-1' });
+  assert.deepEqual(app.send(data), { ok: true, submissionId: data.submissionId, version: 'consultation-20261029-1' });
   assert.deepEqual(app.rows[0], visibleHeaders);
   assert.equal(app.rows[1][3], data.brand);
   assert.equal(app.rows[1].includes(data.submissionId), false);
@@ -134,9 +138,22 @@ test('saves all new answers in the correct columns and acknowledges the ID', () 
 
 test('version check does not read or change spreadsheet data', () => {
   const app = backend();
-  assert.deepEqual(app.health(), { ok: true, version: 'consultation-20261028-1' });
+  assert.deepEqual(app.health(), { ok: true, version: 'consultation-20261029-1' });
   assert.equal(app.sheetOpens(), 0);
   assert.equal(app.rows.length, 0);
+});
+
+test('deployment diagnostics show the project URL without reading or writing customer data', () => {
+  const app = backend();
+  app.diagnose();
+  assert.deepEqual(app.logs, [
+    '部署網址：https://script.google.com/macros/s/test/exec',
+    '目前版本：consultation-20261029-1',
+    'doGet存在：true'
+  ]);
+  assert.equal(app.sheetOpens(), 0);
+  assert.equal(app.rows.length, 0);
+  assert.equal(app.receipts.length, 0);
 });
 
 test('write errors identify the failing phase without exposing customer content', () => {
@@ -145,7 +162,7 @@ test('write errors identify the failing phase without exposing customer content'
   const result = app.send({ ...sample(), brand: 'PRIVATE-CUSTOMER-CONTENT' });
   assert.equal(result.ok, false);
   assert.equal(result.stage, 'headers');
-  assert.equal(result.version, 'consultation-20261028-1');
+  assert.equal(result.version, 'consultation-20261029-1');
   assert.equal(JSON.stringify(result).includes('PRIVATE-CUSTOMER-CONTENT'), false);
 });
 

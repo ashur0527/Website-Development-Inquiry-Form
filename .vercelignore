@@ -2,7 +2,6 @@
 .openai
 backups
 google-apps-script.gs
-deployment-diagnostic.gs
 GOOGLE-SHEETS-SETUP.md
 integration.test.cjs
 README.md

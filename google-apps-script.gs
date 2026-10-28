@@ -1,11 +1,19 @@
+// 網站諮詢表完整接收程式。請以全部內容取代原本的 .gs 程式，不要貼入 appsscript.json。
 const SHEET_ID = '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0';
 const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充'];
 const BUSINESS_HEADERS = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
 const RECEIPT_KEY = 'consult_submission_id';
-const RECEIVER_VERSION = 'consultation-20261028-1';
+const RECEIVER_VERSION = 'consultation-20261029-1';
 
 function doGet() {
   return jsonResponse({ ok: true, version: RECEIVER_VERSION });
+}
+
+// 在編輯器手動執行，可查看此專案的部署網址與目前程式版本，不會讀寫客戶資料。
+function checkDeploymentInfo() {
+  console.log('部署網址：' + ScriptApp.getService().getUrl());
+  console.log('目前版本：' + RECEIVER_VERSION);
+  console.log('doGet存在：' + (typeof doGet === 'function'));
 }
 
 function doPost(event) {
