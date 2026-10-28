@@ -42,9 +42,20 @@ function backend(options = {}) {
       return finder;
     },
     getRange: (row, column, height, width) => {
+      let entireRow = false;
+      if (typeof row === 'string') {
+        const match = /^([1-9]\d*):\1$/.exec(row);
+        if (!match) throw new Error('Unsupported A1 range');
+        row = Number(match[1]);
+        column = 1;
+        height = 1;
+        width = columns;
+        entireRow = true;
+      }
       if (column + width - 1 > columns) throw new Error('Range exceeds sheet');
       return {
         addDeveloperMetadata: (key, id, visibility) => {
+          if (!entireRow) throw new Error('Adding developer metadata to arbitrary ranges is not currently supported');
           if (failReceipt) throw new Error('Metadata write failed');
           assert.equal(column, 1);
           assert.equal(width, columns);

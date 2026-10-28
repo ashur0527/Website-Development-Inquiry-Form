@@ -54,7 +54,7 @@ function getReceipts(sheet) {
 function addReceipt(sheet, row, id) {
   const maxRows = sheet.getMaxRows();
   if (row > maxRows) sheet.insertRowsAfter(maxRows, row - maxRows);
-  sheet.getRange(row, 1, 1, sheet.getMaxColumns())
+  sheet.getRange(`${row}:${row}`)
     .addDeveloperMetadata(RECEIPT_KEY, id, SpreadsheetApp.DeveloperMetadataVisibility.PROJECT);
 }
 
