@@ -1,6 +1,6 @@
 :root {
   --ink: #22211f;
-  --muted: #6f6a63;
+  --muted: #625d57;
   --paper: #fffaf2;
   --line: rgba(34, 33, 31, 0.14);
   --sage: #68775d;
@@ -39,7 +39,7 @@ button, input, textarea { font: inherit; }
   color: var(--sage);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 h1, h2, p { margin-top: 0; }
@@ -47,12 +47,12 @@ h1 {
   max-width: 8em;
   margin-bottom: 22px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3rem, 8vw, 7.5rem);
+  font-size: 80px;
   line-height: 0.96;
   letter-spacing: 0;
 }
-h2 { margin-bottom: 14px; font-size: clamp(1.2rem, 2vw, 1.7rem); line-height: 1.32; }
-.hero-copy p:not(.eyebrow) { max-width: 560px; color: #46413b; font-size: clamp(1rem, 1.8vw, 1.22rem); line-height: 1.9; }
+h2 { margin-bottom: 14px; font-size: 22px; line-height: 1.5; }
+.hero-copy p:not(.eyebrow) { max-width: 560px; color: #46413b; font-size: 18px; line-height: 1.9; }
 
 .form-layout {
   display: grid;
@@ -74,7 +74,8 @@ h2 { margin-bottom: 14px; font-size: clamp(1.2rem, 2vw, 1.7rem); line-height: 1.
 .summary-panel { position: sticky; top: 24px; padding: 28px; }
 .summary-panel p { color: var(--muted); line-height: 1.75; }
 .progress-wrap { height: 8px; margin: 26px 0; overflow: hidden; border-radius: 999px; background: rgba(104, 119, 93, 0.16); }
-.progress-bar { display: block; width: 14%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sage), var(--coral), var(--sky)); transition: width 240ms ease; }
+.progress-bar { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sage), var(--coral), var(--sky)); transition: width 240ms ease; }
+.summary-panel .progress-text { margin: -14px 0 24px; font-size: 14px; }
 .gentle-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; color: #4b463f; }
 .gentle-list li { padding-left: 18px; border-left: 3px solid rgba(201, 120, 96, 0.6); }
 
@@ -99,6 +100,15 @@ h2 { margin-bottom: 14px; font-size: clamp(1.2rem, 2vw, 1.7rem); line-height: 1.
 .choice-card input:checked + span, .radio-stack input:checked + span { border-color: rgba(104, 119, 93, 0.75); background: rgba(232, 239, 226, 0.95); box-shadow: inset 0 0 0 1px rgba(104, 119, 93, 0.35); }
 .choice-card:hover span, .radio-stack label:hover span { transform: translateY(-1px); }
 .radio-stack { display: grid; gap: 10px; }
+.radio-stack.two-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.radio-stack.two-column label { min-width: 0; }
+.radio-stack.two-column span { height: 100%; }
+.choice-card input:focus-visible + span, .radio-stack input:focus-visible + span { outline: 3px solid var(--sky); outline-offset: 3px; }
+.field-hint { color: #5c5750; font-size: 15px; line-height: 1.85; margin-bottom: 18px; }
+.field-tag { display: inline-block; margin-left: 12px; color: #6d473c; font-size: 13px; font-weight: 500; vertical-align: middle; white-space: nowrap; }
+.field-tag.optional { color: #625d57; }
+.color-field { display: block; margin-top: 20px; }
+input[readonly] { color: var(--muted); background: #efeee9; }
 .radio-stack span { position: relative; padding: 15px 18px 15px 48px; }
 .radio-stack span::before { content: ""; position: absolute; left: 18px; width: 14px; height: 14px; border: 2px solid rgba(104, 119, 93, 0.54); border-radius: 999px; background: #fff; }
 .radio-stack input:checked + span::before { box-shadow: inset 0 0 0 4px #fff; background: var(--sage); }
@@ -119,6 +129,8 @@ input[type="text"]:focus, textarea:focus { border-color: rgba(137, 168, 182, 0.9
 ::placeholder { color: rgba(76, 70, 63, 0.46); }
 .actions { display: flex; gap: 18px; align-items: center; padding-top: 28px; }
 .actions button {
+  flex-shrink: 0;
+  white-space: nowrap;
   min-height: 54px;
   border: 0;
   border-radius: 8px;
@@ -144,6 +156,7 @@ input[type="text"]:focus, textarea:focus { border-color: rgba(137, 168, 182, 0.9
 .result-card dd { margin: 0; line-height: 1.7; }
 
 @media (max-width: 880px) {
+  h1 { font-size: 56px; }
   .hero-panel { min-height: 620px; align-items: flex-start; }
   .hero-media {
     background:
@@ -156,10 +169,17 @@ input[type="text"]:focus, textarea:focus { border-color: rgba(137, 168, 182, 0.9
 
 @media (max-width: 640px) {
   .hero-panel { min-height: 560px; padding: 22px; }
-  h1 { font-size: clamp(2.7rem, 15vw, 4.5rem); }
+  h1 { font-size: 40px; line-height: 1.2; }
+  h2 { font-size: 20px; }
+  .hero-copy p:not(.eyebrow) { font-size: 16px; }
   .form-layout { width: calc(100% - 22px); margin-bottom: 34px; }
   .consult-form, .summary-panel { padding: 20px; }
-  .choice-grid, .compact-grid { grid-template-columns: 1fr; }
+  .compact-grid, .radio-stack.two-column { grid-template-columns: 1fr; }
+  .choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .actions { display: grid; }
   .result-card div.row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
 }
