@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>網站風格探索諮詢表</title>
-    <meta name="description" content="一份給客人填寫的網站風格探索諮詢表。" />
+    <title>網站設計諮詢表</title>
+    <meta name="description" content="分享您的商家特色、服務內容與視覺偏好，讓我們為您規劃合適的品牌網站。" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -12,31 +12,78 @@
       <section class="hero-panel" aria-labelledby="page-title">
         <div class="hero-media" aria-hidden="true"></div>
         <div class="hero-copy">
-          <p class="eyebrow">Website Style Discovery</p>
-          <h1 id="page-title">網站風格探索諮詢表</h1>
-          <p>不需要準備專業資料，只要用直覺選出喜歡的方向。這份表單會幫我們先抓到你的品牌氣質、網站用途與大致視覺偏好。</p>
+          <p class="eyebrow">Website Design Consultation</p>
+          <h1 id="page-title">網站設計諮詢表</h1>
+          <p>讓我們了解您的商家特色與網站期待，為您規劃更合適的品牌形象與網站內容。</p>
         </div>
       </section>
 
-      <section class="form-layout" aria-label="網站風格探索表單">
+      <section class="form-layout" aria-label="網站設計需求表單">
         <aside class="summary-panel">
           <p class="section-kicker">填寫狀態</p>
-          <h2>大約 3 分鐘完成</h2>
-          <p>可以先填個方向，不確定的地方留白也沒關係。重點是讓設計討論更快進入同一個畫面。</p>
+          <h2>大約 5 分鐘完成</h2>
+          <p>分享商家的故事與您喜歡的方向，讓我們從品牌出發，展開網站設計的第一步。</p>
           <div class="progress-wrap" aria-hidden="true"><span class="progress-bar" id="progressBar"></span></div>
+          <p class="progress-text" id="progressText">已完成 0 / 8 項</p>
           <ul class="gentle-list">
-            <li>選擇喜歡的整體感覺</li>
-            <li>說明網站主要用途</li>
-            <li>留下可聯絡的資訊</li>
+            <li>商家背景與服務內容</li>
+            <li>現有網站與素材授權</li>
+            <li>聯絡資訊與視覺偏好</li>
           </ul>
         </aside>
 
         <form class="consult-form" id="consultForm">
           <div class="form-section">
-            <div>
-              <p class="section-kicker">Step 01</p>
-              <h2>你希望網站給人的第一印象是？</h2>
+            <h2><label for="brand">商家名稱</label><span class="field-tag">必填</span></h2>
+            <input id="brand" name="brand" type="text" maxlength="200" autocomplete="organization" placeholder="請填寫商家、品牌或公司名稱" required />
+          </div>
+
+          <div class="form-section" role="group" aria-labelledby="website-heading">
+            <h2 id="website-heading">目前是否已有網站？<span class="field-tag">必填</span></h2>
+            <p class="field-hint">若已有網站，設計師將參考現有內容與品牌形象，作為重新設計的依據。</p>
+            <div class="radio-stack two-column">
+              <label><input type="radio" name="hasWebsite" value="有" required /><span>已有網站，希望重新設計</span></label>
+              <label><input type="radio" name="hasWebsite" value="沒有" required /><span>尚無網站，希望全新規劃</span></label>
             </div>
+          </div>
+
+          <div class="form-section">
+            <h2><label for="websiteUrl">現有網站網址</label><span class="field-tag">必填</span></h2>
+            <p class="field-hint" id="website-hint">請提供完整網址；若尚無網站，請填寫「無」。</p>
+            <input id="websiteUrl" name="websiteUrl" type="text" inputmode="url" maxlength="2000" aria-describedby="website-hint" placeholder="https://www.example.com 或 無" required />
+          </div>
+
+          <div class="form-section" role="group" aria-labelledby="consent-heading" aria-describedby="consent-description">
+            <h2 id="consent-heading">品牌素材使用授權<span class="field-tag">必填</span></h2>
+            <p class="field-hint" id="consent-description">您是否同意授權本公司使用貴公司提供的素材（如 Logo、產品照片及文字內容等），用於貴公司網站設計及相關成果展示？</p>
+            <div class="radio-stack two-column">
+              <label><input type="radio" name="materialsConsent" value="同意授權" required /><span>同意上述素材使用授權</span></label>
+              <label><input type="radio" name="materialsConsent" value="不同意授權" required /><span>不同意，請先與我聯繫確認</span></label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2><label for="businessIntro">商家簡介與品牌特色</label><span class="field-tag optional">選填</span></h2>
+            <p class="field-hint" id="intro-hint">請簡要介紹品牌理念、經營特色或專業優勢，幫助我們傳達商家價值，建立鮮明的品牌形象。</p>
+            <textarea id="businessIntro" name="businessIntro" rows="4" maxlength="1000" aria-describedby="intro-hint" placeholder="例如：我們是專注手作甜點的工作室，堅持使用在地食材，希望讓顧客感受到用心與溫度。"></textarea>
+          </div>
+
+          <div class="form-section">
+            <h2><label for="services">主要產品或服務介紹</label><span class="field-tag optional">選填</span></h2>
+            <p class="field-hint" id="services-hint">請列出主要產品或服務，並簡單說明其內容與特色，讓顧客快速了解您能提供的價值。</p>
+            <textarea id="services" name="services" rows="4" maxlength="1000" aria-describedby="services-hint" placeholder="例如：客製生日蛋糕、節慶禮盒、企業下午茶，提供預訂與宅配服務。"></textarea>
+          </div>
+
+          <div class="form-section">
+            <h2>聯絡人資訊<span class="field-tag">必填</span></h2>
+            <div class="compact-grid">
+              <label for="name"><span>聯絡人姓名</span><input id="name" name="name" type="text" maxlength="200" autocomplete="name" placeholder="請填寫您的姓名或稱呼" required /></label>
+              <label for="contact"><span>聯絡方式</span><input id="contact" name="contact" type="text" maxlength="500" placeholder="電子郵件、電話或 LINE ID" required /></label>
+            </div>
+          </div>
+
+          <div class="form-section" role="group" aria-labelledby="style-heading">
+            <h2 id="style-heading">網站風格與整體色調<span class="field-tag optional">選填</span></h2>
             <div class="choice-grid">
               <label class="choice-card"><input type="checkbox" name="style" value="清爽簡約" /><span>清爽簡約</span></label>
               <label class="choice-card"><input type="checkbox" name="style" value="溫暖親切" /><span>溫暖親切</span></label>
@@ -45,47 +92,17 @@
               <label class="choice-card"><input type="checkbox" name="style" value="高級精緻" /><span>高級精緻</span></label>
               <label class="choice-card"><input type="checkbox" name="style" value="自然療癒" /><span>自然療癒</span></label>
             </div>
-          </div>
-
-          <div class="form-section">
-            <div>
-              <p class="section-kicker">Step 02</p>
-              <h2>網站主要想達成什麼？</h2>
-            </div>
-            <div class="radio-stack">
-              <label><input type="radio" name="goal" value="介紹品牌或服務" /><span>介紹品牌或服務</span></label>
-              <label><input type="radio" name="goal" value="收集客戶詢問" /><span>收集客戶詢問</span></label>
-              <label><input type="radio" name="goal" value="展示作品或案例" /><span>展示作品或案例</span></label>
-              <label><input type="radio" name="goal" value="讓客人線上預約或購買" /><span>讓客人線上預約或購買</span></label>
-            </div>
-          </div>
-
-          <div class="form-section compact-grid">
-            <label><span>品牌或公司名稱</span><input name="brand" type="text" placeholder="例如：晨光甜點工作室" /></label>
-            <label><span>你偏好的顏色或不喜歡的顏色</span><input name="colors" type="text" placeholder="例如：喜歡綠色，不要太暗" /></label>
-          </div>
-
-          <div class="form-section">
-            <label>
-              <span>有沒有喜歡的網站、照片、品牌，或想補充的方向？</span>
-              <textarea name="references" rows="5" placeholder="可以貼網址，也可以簡單描述：我喜歡乾淨、有留白、看起來信任感高的網站。"></textarea>
-            </label>
-          </div>
-
-          <div class="form-section compact-grid">
-            <label><span>你的稱呼</span><input name="name" type="text" placeholder="王小姐" /></label>
-            <label><span>聯絡方式</span><input name="contact" type="text" placeholder="Email / LINE / 電話" /></label>
+            <label class="color-field" for="colors"><span>偏好的整體色調</span><input id="colors" name="colors" type="text" maxlength="500" placeholder="例如：白色搭配深綠色、柔和暖色系，或希望避免的顏色" /></label>
           </div>
 
           <div class="actions">
-            <button type="submit">送出諮詢</button>
-            <p>填寫資料僅用於本次網站諮詢與後續聯絡。</p>
+            <button type="submit">送出網站諮詢</button>
+            <p>本表單資料僅用於網站設計諮詢與後續聯絡；素材使用依您的授權選擇辦理。</p>
           </div>
           <p id="submitStatus" class="submit-status" role="status" aria-live="polite"></p>
 
           <section class="result-card" id="resultCard" aria-live="polite" hidden>
-            <p class="section-kicker">摘要</p>
-            <h2>初步網站方向</h2>
+            <h2>您的網站設計需求摘要</h2>
             <div id="resultText"></div>
           </section>
         </form>
