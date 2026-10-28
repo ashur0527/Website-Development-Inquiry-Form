@@ -1,7 +1,8 @@
 const SHEET_ID = '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0';
 const TARGET_TAB_ID = 5553746;
-const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充', '提交編號'];
+const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充'];
 const BUSINESS_HEADERS = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
+const RECEIPT_KEY = 'consult_submission_id';
 
 function doPost(event) {
   const lock = LockService.getScriptLock();
@@ -13,19 +14,49 @@ function doPost(event) {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetById(TARGET_TAB_ID);
     if (!sheet) throw new Error('Target tab is missing');
     prepareHeaders(sheet);
-    // 相同提交編號只記錄一次；文字不當成公式執行。
-    const rowCount = sheet.getLastRow();
-    const duplicate = rowCount > 1 && sheet.getRange(2, HEADERS.length, rowCount - 1, 1)
-      .createTextFinder(submissionId).matchEntireCell(true).findNext();
-    if (!duplicate) {
+    // 編號保存在列的內部記錄，不佔試算表欄位。
+    const receipts = getReceipts(sheet);
+    const receipt = receipts.find(item => item.id === submissionId);
+    const row = receipt ? receipt.row : receipts.reduce((last, item) => Math.max(last, item.row), sheet.getLastRow()) + 1;
+    if (!receipt) addReceipt(sheet, row, submissionId);
+    const range = sheet.getRange(row, 1, 1, HEADERS.length + BUSINESS_HEADERS.length);
+    if (range.getValues()[0].every(value => value === '')) {
       const safe = value => /^[\s\u0000-\u001f]*[=+@-]/.test(value) ? "'" + value : value;
-      sheet.appendRow([new Date(), ...values.map(safe), submissionId, ...businessValues.map(safe)]);
-      SpreadsheetApp.flush();
+      range.setValues([[new Date(), ...values.map(safe), ...businessValues.map(safe)]]);
     }
+    SpreadsheetApp.flush();
     return jsonResponse({ ok: true, submissionId });
   } catch (error) {
     console.error(error);
     return jsonResponse({ ok: false, error: 'Unable to save submission' });
+  } finally {
+    if (lock.hasLock()) lock.releaseLock();
+  }
+}
+
+function getReceipts(sheet) {
+  return sheet.createDeveloperMetadataFinder().withKey(RECEIPT_KEY)
+    .withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.PROJECT)
+    .withLocationType(SpreadsheetApp.DeveloperMetadataLocationType.ROW).find()
+    .map(item => ({ id: item.getValue(), row: item.getLocation().getRow().getRow() }));
+}
+
+function addReceipt(sheet, row, id) {
+  const maxRows = sheet.getMaxRows();
+  if (row > maxRows) sheet.insertRowsAfter(maxRows, row - maxRows);
+  sheet.getRange(row, 1, 1, sheet.getMaxColumns())
+    .addDeveloperMetadata(RECEIPT_KEY, id, SpreadsheetApp.DeveloperMetadataVisibility.PROJECT);
+}
+
+// 可在 Apps Script 手動執行，立即移除既有編號欄。
+function removeSubmissionNumberColumn() {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetById(TARGET_TAB_ID);
+    if (!sheet) throw new Error('Target tab is missing');
+    prepareHeaders(sheet);
+    SpreadsheetApp.flush();
   } finally {
     if (lock.hasLock()) lock.releaseLock();
   }
@@ -41,13 +72,36 @@ function prepareHeaders(sheet) {
   }
   const header = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
   if (HEADERS.some((value, index) => value !== header[index])) throw new Error('Unexpected headers');
-  ensureColumns(sheet, allHeaders.length);
-  const range = sheet.getRange(1, HEADERS.length + 1, 1, BUSINESS_HEADERS.length);
+  const businessColumn = HEADERS.length + 1;
+  const extraCount = sheet.getMaxColumns() - HEADERS.length;
+  const extra = extraCount > 0 ? sheet.getRange(1, businessColumn, 1, extraCount).getValues()[0] : [];
+  const idOffset = extra.indexOf('提交編號');
+  if (idOffset !== extra.lastIndexOf('提交編號')) throw new Error('Multiple ID columns');
+  const idColumn = idOffset < 0 ? 0 : businessColumn + idOffset;
+  ensureColumns(sheet, allHeaders.length + (idColumn ? 1 : 0));
+  const range = sheet.getRange(1, businessColumn + (idColumn === businessColumn ? 1 : 0), 1, BUSINESS_HEADERS.length);
   const existing = range.getValues()[0];
   if (existing.some((value, index) => value !== '' && value !== BUSINESS_HEADERS[index])) {
     throw new Error('New columns contain unrelated data');
   }
-  if (existing.some(value => value === '')) range.setValues([BUSINESS_HEADERS]);
+  if (idColumn) {
+    // 先保存舊編號，全部成功後才刪欄，保留歷史資料與重試防護。
+    const lastRow = sheet.getLastRow();
+    const receipts = new Map(getReceipts(sheet).map(item => [item.row, item.id]));
+    if (lastRow > 1) {
+      sheet.getRange(2, idColumn, lastRow - 1, 1).getValues().forEach(([id], index) => {
+        if (id === '') return;
+        const row = index + 2;
+        if (receipts.has(row) && receipts.get(row) !== String(id)) throw new Error('Receipt conflict');
+        if (!receipts.has(row)) addReceipt(sheet, row, String(id));
+      });
+    }
+    SpreadsheetApp.flush();
+    sheet.deleteColumn(idColumn);
+  }
+  if (existing.some(value => value === '')) {
+    sheet.getRange(1, businessColumn, 1, BUSINESS_HEADERS.length).setValues([BUSINESS_HEADERS]);
+  }
 }
 
 function ensureColumns(sheet, count) {

@@ -6,22 +6,50 @@ const { randomUUID } = require('node:crypto');
 
 const legacyHeaders = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充', '提交編號'];
 const extraHeaders = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
+const visibleHeaders = [...legacyHeaders.slice(0, -1), ...extraHeaders];
 
 function backend(options = {}) {
   const rows = (options.rows || []).map(row => [...row]);
+  const receipts = [];
   let columns = options.columns || 26;
+  let maxRows = options.maxRows || 1000;
   let fail = false;
+  let failReceipt = false;
   let held = false;
   let deleted = false;
   const sheet = {
     getMaxColumns: () => columns,
+    getMaxRows: () => maxRows,
+    insertRowsAfter: (after, count) => { assert.equal(after, maxRows); maxRows += count; },
     insertColumnsAfter: (after, count) => { assert.equal(after, columns); columns += count; },
-    getLastRow: () => rows.length,
+    deleteColumn: column => { rows.forEach(row => row.splice(column - 1, 1)); columns--; },
+    getLastRow: () => rows.findLastIndex(row => row?.some(value => value !== '' && value !== undefined)) + 1,
     appendRow: row => { if (fail) throw new Error('Write failed'); rows.push([...row]); },
     setFrozenRows() {},
+    createDeveloperMetadataFinder: () => {
+      let key;
+      const finder = {
+        withKey: value => { key = value; return finder; },
+        withVisibility: value => { assert.equal(value, 'PROJECT'); return finder; },
+        withLocationType: value => { assert.equal(value, 'ROW'); return finder; },
+        find: () => receipts.filter(receipt => receipt.key === key).map(receipt => ({
+          getValue: () => receipt.id,
+          getLocation: () => ({ getRow: () => ({ getRow: () => receipt.row }) })
+        }))
+      };
+      return finder;
+    },
     getRange: (row, column, height, width) => {
       if (column + width - 1 > columns) throw new Error('Range exceeds sheet');
       return {
+        addDeveloperMetadata: (key, id, visibility) => {
+          if (failReceipt) throw new Error('Metadata write failed');
+          assert.equal(column, 1);
+          assert.equal(width, columns);
+          assert.equal(height, 1);
+          assert.equal(visibility, 'PROJECT');
+          receipts.push({ key, id, row });
+        },
         getValues: () => Array.from({ length: height }, (_, y) =>
           Array.from({ length: width }, (_, x) => rows[row - 1 + y]?.[column - 1 + x] ?? '')),
         setValues: values => {
@@ -30,12 +58,7 @@ function backend(options = {}) {
             rows[row - 1 + y] ||= [];
             valuesRow.forEach((value, x) => { rows[row - 1 + y][column - 1 + x] = value; });
           });
-        },
-        createTextFinder: id => ({
-          matchEntireCell: () => ({
-            findNext: () => rows.slice(row - 1, row - 1 + height).find(values => values[column - 1] === id)
-          })
-        })
+        }
       };
     }
   };
@@ -44,6 +67,8 @@ function backend(options = {}) {
     console: { error() {} },
     LockService: { getScriptLock: () => lock },
     SpreadsheetApp: {
+      DeveloperMetadataVisibility: { PROJECT: 'PROJECT' },
+      DeveloperMetadataLocationType: { ROW: 'ROW' },
       openById: id => {
         assert.equal(id, '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0');
         return {
@@ -57,8 +82,11 @@ function backend(options = {}) {
   });
   vm.runInContext(fs.readFileSync('google-apps-script.gs', 'utf8'), ctx);
   return {
-    rows, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
+    rows, receipts, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
+    removeNumber: () => ctx.removeSubmissionNumberColumn(),
     fail: () => { fail = true; }, locked: () => held,
+    failMetadata: () => { failReceipt = true; },
+    recover: () => { fail = false; failReceipt = false; },
     deleteTab: () => { deleted = true; }, columns: () => columns
   };
 }
@@ -78,40 +106,42 @@ test('saves all new answers in the correct columns and acknowledges the ID', () 
   const app = backend();
   const data = sample();
   assert.deepEqual(app.send(data), { ok: true, submissionId: data.submissionId });
-  assert.deepEqual(app.rows[0], [...legacyHeaders, ...extraHeaders]);
+  assert.deepEqual(app.rows[0], visibleHeaders);
   assert.equal(app.rows[1][3], data.brand);
-  assert.equal(app.rows[1][8], data.submissionId);
-  assert.deepEqual(app.rows[1].slice(9), [data.hasWebsite, data.websiteUrl, data.materialsConsent, data.businessIntro, data.services]);
+  assert.equal(app.rows[1].includes(data.submissionId), false);
+  assert.equal(app.receipts[0].id, data.submissionId);
+  assert.deepEqual(app.rows[1].slice(8), [data.hasWebsite, data.websiteUrl, data.materialsConsent, data.businessIntro, data.services]);
   assert.equal(app.locked(), false);
 });
 
 test('declining materials authorization is retained and does not block submission', () => {
   const app = backend();
   assert.equal(app.send({ ...sample(), materialsConsent: '不同意授權' }).ok, true);
-  assert.equal(app.rows[1][11], '不同意授權');
+  assert.equal(app.rows[1][10], '不同意授權');
 });
 
 test('a business without a website can submit 無', () => {
   const app = backend();
   assert.equal(app.send({ ...sample(), hasWebsite: '沒有', websiteUrl: '無' }).ok, true);
-  assert.equal(app.rows[1][10], '無');
+  assert.equal(app.rows[1][9], '無');
 });
 
-test('legacy records remain unchanged when the five new headers are added', () => {
+test('removes the legacy ID column while preserving other record data', () => {
   const oldRow = ['old date', 'Old customer', 'old@example.com', 'Old brand', '', '', '', '', randomUUID()];
   const app = backend({ rows: [legacyHeaders, oldRow], columns: 9 });
   assert.equal(app.send(sample()).ok, true);
-  assert.deepEqual(app.rows[1], oldRow);
-  assert.deepEqual(app.rows[0], [...legacyHeaders, ...extraHeaders]);
-  assert.equal(app.columns(), 14);
+  assert.deepEqual(app.rows[1], oldRow.slice(0, -1));
+  assert.deepEqual(app.rows[0], visibleHeaders);
+  assert.equal(app.columns(), 13);
+  assert.equal(app.receipts[0].id, oldRow[8]);
 });
 
 test('legacy clients can still submit after upgrading the receiver', () => {
   const app = backend();
   const data = legacySample();
   assert.equal(app.send(data).ok, true);
-  assert.equal(app.rows[1][8], data.submissionId);
-  assert.deepEqual(app.rows[1].slice(9), ['', '', '', '', '']);
+  assert.equal(app.receipts[0].id, data.submissionId);
+  assert.deepEqual(app.rows[1].slice(8), ['', '', '', '', '']);
 });
 
 test('existing new headers and duplicate IDs do not create extra rows', () => {
@@ -119,6 +149,78 @@ test('existing new headers and duplicate IDs do not create extra rows', () => {
   const data = sample();
   app.send(data);
   assert.equal(app.send(data).ok, true);
+  assert.equal(app.rows.length, 2);
+});
+
+test('manual removal preserves new business fields and historical duplicate detection', () => {
+  const id = randomUUID();
+  const oldRow = ['date', 'Customer', 'test@example.com', 'Brand', '', '', '', '', id, '有', 'https://example.com', '不同意授權', 'Intro', 'Services'];
+  const app = backend({ rows: [[...legacyHeaders, ...extraHeaders], oldRow] });
+  app.removeNumber();
+  assert.deepEqual(app.rows[0], visibleHeaders);
+  assert.deepEqual(app.rows[1], [...oldRow.slice(0, 8), ...oldRow.slice(9)]);
+  assert.equal(app.receipts[0].id, id);
+  assert.equal(app.send({ ...sample(), submissionId: id }).ok, true);
+  assert.equal(app.rows.length, 2);
+  app.removeNumber();
+  assert.equal(app.receipts.length, 1);
+  assert.equal(app.rows[1].length, 13);
+});
+
+test('a manually removed ID column is not recreated', () => {
+  const app = backend({ rows: [legacyHeaders.slice(0, -1)], columns: 8 });
+  assert.equal(app.send(sample()).ok, true);
+  assert.deepEqual(app.rows[0], visibleHeaders);
+  assert.equal(app.rows[0].includes('提交編號'), false);
+});
+
+test('an ID column placed after all business fields is removed without shifting their data', () => {
+  const id = randomUUID();
+  const row = ['date', 'Customer', 'test@example.com', 'Brand', '', '', '', '', '沒有', '無', '不同意授權', 'Intro', 'Services', id];
+  const app = backend({ rows: [[...visibleHeaders, '提交編號'], row] });
+  app.removeNumber();
+  assert.deepEqual(app.rows[0], visibleHeaders);
+  assert.deepEqual(app.rows[1], row.slice(0, -1));
+  assert.equal(app.receipts[0].id, id);
+});
+
+test('metadata failure retains the legacy ID column and all customer data', () => {
+  const oldRow = ['date', 'Customer', 'test@example.com', 'Brand', '', '', '', '', randomUUID()];
+  const app = backend({ rows: [legacyHeaders, oldRow] });
+  app.failMetadata();
+  assert.throws(() => app.removeNumber(), /Metadata write failed/);
+  assert.deepEqual(app.rows[0], legacyHeaders);
+  assert.deepEqual(app.rows[1], oldRow);
+  assert.equal(app.locked(), false);
+});
+
+test('a failed row write can be retried without duplicate records', () => {
+  const app = backend({ rows: [visibleHeaders] });
+  const data = sample();
+  app.fail();
+  assert.equal(app.send(data).ok, false);
+  assert.equal(app.receipts.length, 1);
+  app.recover();
+  assert.equal(app.send(data).ok, true);
+  assert.equal(app.rows.length, 2);
+  assert.equal(app.receipts.length, 1);
+});
+
+test('a different submission does not overwrite a pending receipt row', () => {
+  const app = backend({ rows: [visibleHeaders] });
+  const first = { ...sample(), brand: 'First brand' };
+  app.fail();
+  assert.equal(app.send(first).ok, false);
+  app.recover();
+  assert.equal(app.send({ ...sample(), brand: 'Second brand' }).ok, true);
+  assert.equal(app.send(first).ok, true);
+  assert.equal(app.rows[1][3], 'First brand');
+  assert.equal(app.rows[2][3], 'Second brand');
+});
+
+test('new rows are added when the original sheet is full', () => {
+  const app = backend({ rows: [visibleHeaders], maxRows: 1 });
+  assert.equal(app.send(sample()).ok, true);
   assert.equal(app.rows.length, 2);
 });
 
@@ -147,7 +249,7 @@ test('formula-like values are literal in both old and new columns', () => {
   app.send({ ...sample(), brand: '=IMPORTXML("url")', contact: '+886123456789', services: '=1+1' });
   assert.equal(app.rows[1][3], "'=IMPORTXML(\"url\")");
   assert.equal(app.rows[1][2], "'+886123456789");
-  assert.equal(app.rows[1][13], "'=1+1");
+  assert.equal(app.rows[1][12], "'=1+1");
 });
 
 test('write failure and deleted target never acknowledge success', () => {
