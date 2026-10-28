@@ -1,5 +1,5 @@
 const SHEET_ID = '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0';
-const TARGET_TAB_ID = 5553746;
+const TARGET_TAB_ID = 312933936;
 const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充'];
 const BUSINESS_HEADERS = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
 const RECEIPT_KEY = 'consult_submission_id';

@@ -72,7 +72,7 @@ function backend(options = {}) {
       openById: id => {
         assert.equal(id, '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0');
         return {
-          getSheetById: id => { assert.equal(id, 5553746); return deleted ? null : sheet; },
+          getSheetById: id => { assert.equal(id, 312933936); return deleted ? null : sheet; },
           insertSheet: () => { throw new Error('Unexpected new tab'); }
         };
       },

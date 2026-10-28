@@ -5,7 +5,7 @@
 設定集中在檔案最上方：
 
 - SHEET_ID：Google 試算表 ID，已填好。
-- TARGET_TAB_ID：收資料的分頁 ID，目前為 5553746。
+- TARGET_TAB_ID：收資料的分頁 ID，目前為 312933936，對應使用者指定的商家資料分頁。
 - HEADERS：第一列的欄位標題與順序。
 - BUSINESS_HEADERS：新版商家諮詢問題的五個新增欄位。
 
