@@ -1,9 +1,5 @@
 function checkDeploymentInfo() {
-  const info = {
-    projectId: ScriptApp.getScriptId(),
-    webAppUrl: ScriptApp.getService().getUrl(),
-    hasDoGet: typeof doGet === 'function',
-    version: typeof RECEIVER_VERSION === 'undefined' ? null : RECEIVER_VERSION
-  };
-  console.log(JSON.stringify(info, null, 2));
+  console.log('部署網址：' + ScriptApp.getService().getUrl());
+  console.log('目前版本：' + (typeof RECEIVER_VERSION === 'undefined' ? '未設定' : RECEIVER_VERSION));
+  console.log('doGet存在：' + (typeof doGet === 'function'));
 }
