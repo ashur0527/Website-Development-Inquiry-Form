@@ -1,5 +1,4 @@
 const SHEET_ID = '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0';
-const TARGET_TAB_ID = 312933936;
 const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充'];
 const BUSINESS_HEADERS = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
 const RECEIPT_KEY = 'consult_submission_id';
@@ -9,10 +8,9 @@ function doPost(event) {
   try {
     const { submissionId, values, businessValues } = readSubmission(event);
 
-    // 寫入指定分頁，並保護同時送出的資料。
+    // 寫入諮詢資料分頁，並保護同時送出的資料。
     lock.waitLock(20000);
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetById(TARGET_TAB_ID);
-    if (!sheet) throw new Error('Target tab is missing');
+    const sheet = getConsultSheet();
     prepareHeaders(sheet);
     // 編號保存在列的內部記錄，不佔試算表欄位。
     const receipts = getReceipts(sheet);
@@ -34,6 +32,18 @@ function doPost(event) {
   }
 }
 
+function getConsultSheet() {
+  const sheets = SpreadsheetApp.openById(SHEET_ID).getSheets();
+  const matches = sheets.filter(sheet => {
+    if (sheet.getLastRow() === 0 || sheet.getMaxColumns() < HEADERS.length) return false;
+    const header = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+    return HEADERS.every((value, index) => value === header[index]);
+  });
+  if (matches.length === 1) return matches[0];
+  if (matches.length === 0 && sheets.length === 1) return sheets[0];
+  throw new Error(matches.length > 1 ? '找到多個符合格式的分頁，無法確定收件分頁。' : '找不到可辨識的諮詢資料分頁。');
+}
+
 function getReceipts(sheet) {
   return sheet.createDeveloperMetadataFinder().withKey(RECEIPT_KEY)
     .withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.PROJECT)
@@ -53,8 +63,7 @@ function removeSubmissionNumberColumn() {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetById(TARGET_TAB_ID);
-    if (!sheet) throw new Error('Target tab is missing');
+    const sheet = getConsultSheet();
     prepareHeaders(sheet);
     SpreadsheetApp.flush();
   } finally {

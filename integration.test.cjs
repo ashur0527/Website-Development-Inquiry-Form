@@ -17,7 +17,9 @@ function backend(options = {}) {
   let failReceipt = false;
   let held = false;
   let deleted = false;
+  let tabName = options.tabName || '商家諮詢';
   const sheet = {
+    getName: () => tabName,
     getMaxColumns: () => columns,
     getMaxRows: () => maxRows,
     insertRowsAfter: (after, count) => { assert.equal(after, maxRows); maxRows += count; },
@@ -72,7 +74,7 @@ function backend(options = {}) {
       openById: id => {
         assert.equal(id, '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0');
         return {
-          getSheetById: id => { assert.equal(id, 312933936); return deleted ? null : sheet; },
+          getSheets: () => deleted ? [] : [...(options.otherSheets || []), sheet],
           insertSheet: () => { throw new Error('Unexpected new tab'); }
         };
       },
@@ -82,11 +84,12 @@ function backend(options = {}) {
   });
   vm.runInContext(fs.readFileSync('google-apps-script.gs', 'utf8'), ctx);
   return {
-    rows, receipts, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
+    rows, receipts, sheet, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
     removeNumber: () => ctx.removeSubmissionNumberColumn(),
     fail: () => { fail = true; }, locked: () => held,
     failMetadata: () => { failReceipt = true; },
     recover: () => { fail = false; failReceipt = false; },
+    rename: name => { tabName = name; },
     deleteTab: () => { deleted = true; }, columns: () => columns
   };
 }
@@ -150,6 +153,40 @@ test('existing new headers and duplicate IDs do not create extra rows', () => {
   app.send(data);
   assert.equal(app.send(data).ok, true);
   assert.equal(app.rows.length, 2);
+});
+
+test('renaming a consultation tab does not change its destination', () => {
+  const app = backend();
+  assert.equal(app.send(sample()).ok, true);
+  app.rename('重新命名後的商家資料');
+  assert.equal(app.send(sample()).ok, true);
+  assert.equal(app.rows.length, 3);
+});
+
+test('the consultation tab is identified by headers even when another tab is first', () => {
+  const unrelated = backend({ rows: [['其他資料', '備註']] });
+  const app = backend({ rows: [visibleHeaders], otherSheets: [unrelated.sheet] });
+  assert.equal(app.send(sample()).ok, true);
+  assert.equal(app.rows.length, 2);
+  assert.deepEqual(unrelated.rows, [['其他資料', '備註']]);
+});
+
+test('multiple matching consultation tabs stop both writing and column removal', () => {
+  const other = backend({ rows: [visibleHeaders] });
+  const app = backend({ rows: [legacyHeaders], otherSheets: [other.sheet] });
+  assert.equal(app.send(sample()).ok, false);
+  assert.throws(() => app.removeNumber(), /找到多個符合格式的分頁/);
+  assert.deepEqual(app.rows, [legacyHeaders]);
+  assert.deepEqual(other.rows, [visibleHeaders]);
+});
+
+test('several unrelated or blank tabs are not selected automatically', () => {
+  const unrelated = backend({ rows: [['其他資料']] });
+  const app = backend({ otherSheets: [unrelated.sheet] });
+  assert.equal(app.send(sample()).ok, false);
+  assert.throws(() => app.removeNumber(), /找不到可辨識的諮詢資料分頁/);
+  assert.equal(app.rows.length, 0);
+  assert.deepEqual(unrelated.rows, [['其他資料']]);
 });
 
 test('manual removal preserves new business fields and historical duplicate detection', () => {
