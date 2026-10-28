@@ -17,6 +17,7 @@ function backend(options = {}) {
   let failReceipt = false;
   let held = false;
   let deleted = false;
+  let sheetOpens = 0;
   let tabName = options.tabName || '商家諮詢';
   const sheet = {
     getName: () => tabName,
@@ -83,6 +84,7 @@ function backend(options = {}) {
       DeveloperMetadataVisibility: { PROJECT: 'PROJECT' },
       DeveloperMetadataLocationType: { ROW: 'ROW' },
       openById: id => {
+        sheetOpens++;
         assert.equal(id, '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0');
         return {
           getSheets: () => deleted ? [] : [...(options.otherSheets || []), sheet],
@@ -96,6 +98,8 @@ function backend(options = {}) {
   vm.runInContext(fs.readFileSync('google-apps-script.gs', 'utf8'), ctx);
   return {
     rows, receipts, sheet, send: data => ctx.doPost({ parameter: { payload: JSON.stringify(data) } }),
+    health: () => ctx.doGet(),
+    sheetOpens: () => sheetOpens,
     removeNumber: () => ctx.removeSubmissionNumberColumn(),
     fail: () => { fail = true; }, locked: () => held,
     failMetadata: () => { failReceipt = true; },
@@ -119,13 +123,39 @@ const sample = () => ({
 test('saves all new answers in the correct columns and acknowledges the ID', () => {
   const app = backend();
   const data = sample();
-  assert.deepEqual(app.send(data), { ok: true, submissionId: data.submissionId });
+  assert.deepEqual(app.send(data), { ok: true, submissionId: data.submissionId, version: 'consultation-20261028-1' });
   assert.deepEqual(app.rows[0], visibleHeaders);
   assert.equal(app.rows[1][3], data.brand);
   assert.equal(app.rows[1].includes(data.submissionId), false);
   assert.equal(app.receipts[0].id, data.submissionId);
   assert.deepEqual(app.rows[1].slice(8), [data.hasWebsite, data.websiteUrl, data.materialsConsent, data.businessIntro, data.services]);
   assert.equal(app.locked(), false);
+});
+
+test('version check does not read or change spreadsheet data', () => {
+  const app = backend();
+  assert.deepEqual(app.health(), { ok: true, version: 'consultation-20261028-1' });
+  assert.equal(app.sheetOpens(), 0);
+  assert.equal(app.rows.length, 0);
+});
+
+test('write errors identify the failing phase without exposing customer content', () => {
+  const app = backend();
+  app.fail();
+  const result = app.send({ ...sample(), brand: 'PRIVATE-CUSTOMER-CONTENT' });
+  assert.equal(result.ok, false);
+  assert.equal(result.stage, 'headers');
+  assert.equal(result.version, 'consultation-20261028-1');
+  assert.equal(JSON.stringify(result).includes('PRIVATE-CUSTOMER-CONTENT'), false);
+});
+
+test('metadata errors can be distinguished from header initialization errors', () => {
+  const app = backend();
+  app.failMetadata();
+  const result = app.send(sample());
+  assert.equal(result.ok, false);
+  assert.equal(result.stage, 'reserve');
+  assert.equal(app.rows.length, 1);
 });
 
 test('declining materials authorization is retained and does not block submission', () => {

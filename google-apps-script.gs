@@ -2,31 +2,44 @@ const SHEET_ID = '131szyHCuTlb920N85HDwBpi7v12m3VknRcLvU2zqCi0';
 const HEADERS = ['送出時間', '稱呼', '聯絡方式', '品牌名稱', '風格偏好', '網站用途', '色彩偏好', '參考與補充'];
 const BUSINESS_HEADERS = ['是否已有網站', '現有網站網址', '素材使用授權', '商家簡介與品牌特色', '主要產品或服務介紹'];
 const RECEIPT_KEY = 'consult_submission_id';
+const RECEIVER_VERSION = 'consultation-20261028-1';
+
+function doGet() {
+  return jsonResponse({ ok: true, version: RECEIVER_VERSION });
+}
 
 function doPost(event) {
   const lock = LockService.getScriptLock();
+  let stage = 'validation';
   try {
     const { submissionId, values, businessValues } = readSubmission(event);
 
     // 寫入諮詢資料分頁，並保護同時送出的資料。
+    stage = 'lock';
     lock.waitLock(20000);
+    stage = 'sheet';
     const sheet = getConsultSheet();
+    stage = 'headers';
     prepareHeaders(sheet);
     // 編號保存在列的內部記錄，不佔試算表欄位。
+    stage = 'receipts';
     const receipts = getReceipts(sheet);
     const receipt = receipts.find(item => item.id === submissionId);
     const row = receipt ? receipt.row : receipts.reduce((last, item) => Math.max(last, item.row), sheet.getLastRow()) + 1;
+    stage = 'reserve';
     if (!receipt) addReceipt(sheet, row, submissionId);
+    stage = 'write';
     const range = sheet.getRange(row, 1, 1, HEADERS.length + BUSINESS_HEADERS.length);
     if (range.getValues()[0].every(value => value === '')) {
       const safe = value => /^[\s\u0000-\u001f]*[=+@-]/.test(value) ? "'" + value : value;
       range.setValues([[new Date(), ...values.map(safe), ...businessValues.map(safe)]]);
     }
+    stage = 'flush';
     SpreadsheetApp.flush();
-    return jsonResponse({ ok: true, submissionId });
+    return jsonResponse({ ok: true, submissionId, version: RECEIVER_VERSION });
   } catch (error) {
     console.error(error);
-    return jsonResponse({ ok: false, error: 'Unable to save submission' });
+    return jsonResponse({ ok: false, error: 'Unable to save submission', stage, version: RECEIVER_VERSION });
   } finally {
     if (lock.hasLock()) lock.releaseLock();
   }
