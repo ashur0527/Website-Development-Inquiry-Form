@@ -362,11 +362,12 @@ function frontend(fetcher, endpoint = 'https://script.google.com/macros/s/test/e
   const handlers = {};
   const fields = {
     style: [], brand: 'Test shop', hasWebsite: '有', websiteUrl: 'https://example.com',
+    address: '', hasSocialLinks: '', lineUrl: '', facebookUrl: '', instagramUrl: '',
     materialsConsent: '同意授權', businessIntro: '', services: '',
     colors: '', name: 'Test', contact: 'test@example.com'
   };
   const element = () => ({
-    dataset: {}, style: {}, children: [], focus() {},
+    dataset: {}, style: {}, children: [], focus() {}, addEventListener() {},
     append(...children) { this.children.push(...children); },
     replaceChildren(...children) { this.children = children; }, scrollIntoView() {}
   });
@@ -386,12 +387,13 @@ function frontend(fetcher, endpoint = 'https://script.google.com/macros/s/test/e
   };
   const nodes = {
     '#consultForm': form, '#progressBar': element(), '#progressText': element(),
-    '#resultCard': card, '#resultText': element(), '#submitStatus': status
+    '#resultCard': card, '#resultText': element(), '#submitStatus': status,
+    '#socialLinkFields': element(), '#backToTop': element()
   };
   const ctx = vm.createContext({
     document: { querySelector: key => nodes[key], createElement: element },
     window: { CONSULT_CONFIG: { googleScriptUrl: endpoint } },
-    FormData: class { get(key) { return fields[key]; } },
+    FormData: class { get(key) { return fieldElements[key]?.disabled ? null : fields[key]; } },
     crypto: { randomUUID }, fetch: fetcher, AbortController, URLSearchParams, URL, setTimeout, clearTimeout
   });
   vm.runInContext(fs.readFileSync('dist/script.js', 'utf8'), ctx);
@@ -412,12 +414,12 @@ test('unconfigured form never sends or claims success', async () => {
   assert.equal(ui.card.hidden, true);
 });
 
-test('successful submission renders all eight questions in the summary', async () => {
+test('successful submission renders all ten questions in the summary', async () => {
   const ui = frontend(acknowledge);
   await ui.submit();
   assert.equal(ui.status.dataset.state, 'success');
   assert.equal(ui.card.hidden, false);
-  assert.equal(ui.nodes['#resultText'].children[0].children.length, 8);
+  assert.equal(ui.nodes['#resultText'].children[0].children.length, 10);
   assert.equal(ui.button.disabled, false);
 });
 
@@ -480,12 +482,113 @@ test('network failure preserves all new answers and reuses the same retry ID', a
     throw new Error('Network failed');
   });
   ui.fields.services = '商業攝影';
+  ui.fields.address = '測試地址，請勿公開';
+  ui.fields.hasSocialLinks = '有';
+  ui.fields.lineUrl = 'https://lin.ee/test';
   await ui.submit();
   await ui.submit();
   assert.equal(ui.status.dataset.state, 'error');
   assert.equal(ui.fields.services, '商業攝影');
+  assert.equal(ui.fields.address, '測試地址，請勿公開');
+  assert.equal(ui.fields.lineUrl, 'https://lin.ee/test');
   assert.equal(ids[0], ids[1]);
   assert.equal(ui.button.disabled, false);
+});
+
+test('address and labelled social links are saved by the unchanged deployed receiver', async () => {
+  const app = backend();
+  const ui = frontend(async (_url, options) => ({
+    ok: true, json: async () => app.send(JSON.parse(options.body.get('payload')))
+  }));
+  Object.assign(ui.fields, {
+    address: '台北市測試區測試路 12 號 3 樓', hasSocialLinks: '有',
+    lineUrl: 'https://lin.ee/test', facebookUrl: 'https://www.facebook.com/test',
+    instagramUrl: 'https://www.instagram.com/test/'
+  });
+  await ui.submit();
+  assert.equal(ui.status.dataset.state, 'success');
+  assert.equal(app.rows[0].length, 13);
+  const notes = app.rows[1][7];
+  for (const text of [
+    '店家地址：' + ui.fields.address, '是否有社群連結：有', 'LINE 連結：' + ui.fields.lineUrl,
+    'Facebook（FB） 連結：' + ui.fields.facebookUrl, 'Instagram（IG） 連結：' + ui.fields.instagramUrl
+  ]) assert.ok(notes.includes(text), text);
+});
+
+test('choosing yes for social links needs at least one link', async () => {
+  let calls = 0;
+  const ui = frontend(async (...args) => { calls++; return acknowledge(...args); });
+  ui.fields.hasSocialLinks = '有';
+  await ui.submit();
+  assert.equal(calls, 0);
+  assert.equal(ui.status.dataset.state, 'error');
+  ui.fields.lineUrl = 'https://lin.ee/test';
+  await ui.submit();
+  assert.equal(calls, 1);
+});
+
+test('switching off social links excludes hidden URLs and switching back restores input', async () => {
+  let payload;
+  const ui = frontend(async (url, options) => {
+    payload = JSON.parse(options.body.get('payload'));
+    return acknowledge(url, options);
+  });
+  ui.fields.hasSocialLinks = '有';
+  ui.fields.lineUrl = 'https://lin.ee/test';
+  ui.change();
+  assert.equal(ui.nodes['#socialLinkFields'].hidden, false);
+  ui.fields.hasSocialLinks = '沒有';
+  ui.change();
+  assert.equal(ui.nodes['#socialLinkFields'].hidden, true);
+  assert.equal(ui.fieldElements.lineUrl.disabled, true);
+  await ui.submit();
+  assert.equal(payload.lineUrl, '');
+  assert.ok(payload.references.includes('是否有社群連結：沒有'));
+  assert.equal(payload.references.includes('https://lin.ee/test'), false);
+  ui.fields.hasSocialLinks = '有';
+  ui.change();
+  assert.equal(ui.fields.lineUrl, 'https://lin.ee/test');
+  assert.equal(ui.fieldElements.lineUrl.disabled, false);
+});
+
+test('social links reject unsafe URLs and links in the wrong platform field', async () => {
+  for (const [field, value] of [
+    ['lineUrl', 'javascript:alert(1)'], ['lineUrl', 'https://facebook.com/test'],
+    ['facebookUrl', 'https://facebook.com.example.com/test'],
+    ['instagramUrl', 'https://instagram.com@unrelated.example/test'],
+    ['instagramUrl', 'https://user:pass@instagram.com/test']
+  ]) {
+    let calls = 0;
+    const ui = frontend(async () => { calls++; });
+    ui.fields.hasSocialLinks = '有';
+    ui.fields[field] = value;
+    await ui.submit();
+    assert.equal(calls, 0, value);
+    assert.equal(ui.status.dataset.state, 'error');
+  }
+});
+
+test('maximum length new answers survive the existing notes limit without losing dedicated answers', async () => {
+  const app = backend();
+  let payload;
+  const ui = frontend(async (_url, options) => {
+    payload = JSON.parse(options.body.get('payload'));
+    return { ok: true, json: async () => app.send(payload) };
+  });
+  const longUrl = host => host + 'x'.repeat(1000 - host.length);
+  Object.assign(ui.fields, {
+    address: '址'.repeat(500), hasSocialLinks: '有',
+    lineUrl: longUrl('https://lin.ee/'), facebookUrl: longUrl('https://facebook.com/'),
+    instagramUrl: longUrl('https://instagram.com/'), websiteUrl: 'https://example.com/' + 'z'.repeat(1980),
+    businessIntro: '介'.repeat(1000), services: '服'.repeat(1000)
+  });
+  await ui.submit();
+  assert.equal(ui.status.dataset.state, 'success');
+  assert.ok(payload.references.length <= 5000);
+  for (const field of ['address', 'lineUrl', 'facebookUrl', 'instagramUrl']) assert.ok(app.rows[1][7].includes(ui.fields[field]));
+  assert.equal(app.rows[1][9], ui.fields.websiteUrl);
+  assert.equal(app.rows[1][11], ui.fields.businessIntro);
+  assert.equal(app.rows[1][12], ui.fields.services);
 });
 
 test('invalid acknowledgement never displays a success summary', async () => {

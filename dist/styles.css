@@ -15,6 +15,34 @@
 body { margin: 0; min-height: 100vh; background: #ece2d3; }
 button, input, textarea { font: inherit; }
 .page-shell { min-height: 100vh; }
+[hidden] { display: none !important; }
+.social-link-fields { display: grid; gap: 18px; margin-top: 22px; }
+.social-link-fields > label { min-width: 0; }
+.side-actions {
+  position: fixed;
+  z-index: 10;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 48px;
+}
+.back-to-top {
+  width: 48px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: #24221f;
+  color: #fffaf2;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(34, 33, 31, 0.14);
+  transition: background 180ms ease, transform 180ms ease;
+}
+.back-to-top:hover { background: #3a332d; transform: translateY(-2px); }
+.back-to-top:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
 
 .hero-panel {
   position: relative;
@@ -59,8 +87,9 @@ h2 { margin-bottom: 14px; font-size: 22px; line-height: 1.5; }
   grid-template-columns: minmax(240px, 340px) minmax(0, 780px);
   gap: clamp(20px, 4vw, 44px);
   align-items: start;
-  width: min(1180px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 112px - env(safe-area-inset-right)));
   margin: -86px auto 72px;
+  margin-right: max(calc(80px + env(safe-area-inset-right)), calc((100% - 1180px) / 2));
   position: relative;
 }
 
@@ -172,7 +201,12 @@ input[type="text"]:focus, textarea:focus { border-color: rgba(137, 168, 182, 0.9
   h1 { font-size: 40px; line-height: 1.2; }
   h2 { font-size: 20px; }
   .hero-copy p:not(.eyebrow) { font-size: 16px; }
-  .form-layout { width: calc(100% - 22px); margin-bottom: 34px; }
+  .form-layout {
+    width: calc(100% - 86px - env(safe-area-inset-right));
+    margin-left: 11px;
+    margin-right: calc(75px + env(safe-area-inset-right));
+    margin-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
   .consult-form, .summary-panel { padding: 20px; }
   .compact-grid, .radio-stack.two-column { grid-template-columns: 1fr; }
   .choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

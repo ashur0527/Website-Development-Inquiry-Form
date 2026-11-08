@@ -24,7 +24,7 @@
           <h2>大約 5 分鐘完成</h2>
           <p>分享商家的故事與您喜歡的方向，讓我們從品牌出發，展開網站設計的第一步。</p>
           <div class="progress-wrap" aria-hidden="true"><span class="progress-bar" id="progressBar"></span></div>
-          <p class="progress-text" id="progressText">已完成 0 / 8 項</p>
+          <p class="progress-text" id="progressText">已完成 0 / 10 項</p>
           <ul class="gentle-list">
             <li>商家背景與服務內容</li>
             <li>現有網站與素材授權</li>
@@ -36,6 +36,12 @@
           <div class="form-section">
             <h2><label for="brand">商家名稱</label><span class="field-tag">必填</span></h2>
             <input id="brand" name="brand" type="text" maxlength="200" autocomplete="organization" placeholder="請填寫商家、品牌或公司名稱" required />
+          </div>
+
+          <div class="form-section">
+            <h2><label for="address">店家地址</label><span class="field-tag optional">選填</span></h2>
+            <p class="field-hint" id="address-hint">如有實體門市，請提供希望公開於網站的完整營業地址；無實體門市可留白。</p>
+            <input id="address" name="address" type="text" maxlength="500" autocomplete="street-address" aria-describedby="address-hint" placeholder="縣市、行政區、路段、門牌與樓層" />
           </div>
 
           <div class="form-section" role="group" aria-labelledby="website-heading">
@@ -51,6 +57,20 @@
             <h2><label for="websiteUrl">現有網站網址</label><span class="field-tag">必填</span></h2>
             <p class="field-hint" id="website-hint">請提供完整網址；若尚無網站，請填寫「無」。</p>
             <input id="websiteUrl" name="websiteUrl" type="text" inputmode="url" maxlength="2000" aria-describedby="website-hint" placeholder="https://www.example.com 或 無" required />
+          </div>
+
+          <div class="form-section" role="group" aria-labelledby="social-heading" aria-describedby="social-hint">
+            <h2 id="social-heading">商家社群平台連結<span class="field-tag optional">選填</span></h2>
+            <p class="field-hint" id="social-hint">是否有 LINE、Facebook 或 Instagram？如有，請在對應平台欄位貼上完整連結；未使用的平台可留白。</p>
+            <div class="radio-stack two-column">
+              <label><input type="radio" name="hasSocialLinks" value="有" /><span>有，提供社群連結</span></label>
+              <label><input type="radio" name="hasSocialLinks" value="沒有" /><span>目前沒有社群連結</span></label>
+            </div>
+            <div class="social-link-fields" id="socialLinkFields" hidden>
+              <label for="lineUrl"><span>LINE 連結</span><input id="lineUrl" name="lineUrl" type="text" inputmode="url" maxlength="1000" spellcheck="false" autocomplete="off" placeholder="https://lin.ee/… 或 https://line.me/…" disabled /></label>
+              <label for="facebookUrl"><span>Facebook（FB）連結</span><input id="facebookUrl" name="facebookUrl" type="text" inputmode="url" maxlength="1000" spellcheck="false" autocomplete="off" placeholder="請貼上 Facebook 粉絲專頁的完整網址" disabled /></label>
+              <label for="instagramUrl"><span>Instagram（IG）連結</span><input id="instagramUrl" name="instagramUrl" type="text" inputmode="url" maxlength="1000" spellcheck="false" autocomplete="off" placeholder="請貼上 Instagram 商家帳號的完整網址" disabled /></label>
+            </div>
           </div>
 
           <div class="form-section" role="group" aria-labelledby="consent-heading" aria-describedby="consent-description">
@@ -108,6 +128,7 @@
         </form>
       </section>
     </main>
+    <div class="side-actions"><button class="back-to-top" id="backToTop" type="button" aria-label="返回頁面頂部">TOP</button></div>
     <script src="./config.js"></script>
     <script src="./script.js"></script>
   </body>
